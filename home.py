@@ -26,8 +26,11 @@ steps = [
 ]
 
 for label, done in steps:
-    status = "✅" if done else "⏳"
-    st.write(f"{status} {label}")
+    if done:
+        status = "✅ Completed"
+    else:
+        status = "⏳ Pending"
+    st.write(f"{status} — {label}")
 
 if "df" in st.session_state:
     st.success("Dataset loaded and ready for the next step.")
