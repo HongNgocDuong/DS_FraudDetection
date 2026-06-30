@@ -1,0 +1,22 @@
+import streamlit as st
+import pandas as pd
+
+st.set_page_config(page_title="Fraud Detection Pipeline", layout="wide")
+st.title("Fraud Detection ML Pipeline")
+st.write("This multi-page app walks through the full fraud detection workflow from data upload to final evaluation.")
+
+st.markdown("""
+### Pipeline Overview
+1. Upload your dataset and create a train/test split.
+2. Prepare the training data with stratified cross-validation, outlier capping, RobustScaler, and SMOTE.
+3. Train and tune a Random Forest model across folds.
+4. Apply the same preprocessing to the test set and evaluate the final model.
+""")
+
+st.info("Use the sidebar to navigate between the workflow stages.")
+
+if "df" in st.session_state:
+    st.success("Dataset loaded and ready for the next step.")
+    st.dataframe(st.session_state["df"].head(), use_container_width=True)
+else:
+    st.info("Upload a dataset from the first page to begin.")

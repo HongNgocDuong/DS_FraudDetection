@@ -15,14 +15,14 @@ from sklearn.metrics import (
     confusion_matrix,
     classification_report,
 )
-from xgboost import XGBClassifier
+from sklearn.ensemble import RandomForestClassifier
 from imblearn.over_sampling import SMOTE
 from imblearn.pipeline import Pipeline as ImbPipeline
 
 st.set_page_config(page_title="Fraud Detection App", layout="wide")
 st.title("Fraud Detection App")
 st.write(
-    "This workflow follows the requested sequence: split into train/test, preprocess the training data with outlier capping and RobustScaler, tune XGBoost, retrain with the best hyperparameters, and evaluate on the test set."
+    "This workflow follows the requested sequence: split into train/test, preprocess the training data with outlier capping and RobustScaler, apply SMOTE during cross-validation, tune a Random Forest, retrain with the best hyperparameters, and evaluate on the test set."
 )
 
 
@@ -102,9 +102,7 @@ def run_pipeline(df, target_column, test_size, random_state=42):
             ("smote", SMOTE(random_state=random_state)),
             (
                 "classifier",
-                XGBClassifier(
-                    objective="binary:logistic",
-                    eval_metric="logloss",
+                RandomForestClassifier(
                     random_state=random_state,
                 ),
             ),
@@ -113,10 +111,10 @@ def run_pipeline(df, target_column, test_size, random_state=42):
 
     param_grid = {
         "classifier__n_estimators": [100, 200, 300],
-        "classifier__max_depth": [3, 4, 5],
-        "classifier__learning_rate": [0.05, 0.1, 0.2],
-        "classifier__subsample": [0.8, 1.0],
-        "classifier__colsample_bytree": [0.8, 1.0],
+        "classifier__max_depth": [3, 5, 7],
+        "classifier__min_samples_split": [2, 5, 10],
+        "classifier__min_samples_leaf": [1, 2, 4],
+        "classifier__class_weight": [None, "balanced", "balanced_subsample"],
     }
 
     tuner = RandomizedSearchCV(
@@ -212,7 +210,7 @@ if uploaded_file is not None:
             st.write("2. Outlier capping fitted on the training set and applied to the test set using the same bounds")
             st.write("3. RobustScaler fitted on the training set and applied to the test set using the same statistics")
             st.write("4. SMOTE applied within the training folds during cross-validation")
-            st.write("5. XGBoost hyperparameter tuning on the training data with 5-fold cross-validation")
+            st.write("5. Random Forest hyperparameter tuning on the training data with 5-fold cross-validation")
             st.write("6. Final retraining with the best hyperparameters and evaluation on the held-out test set")
 
             st.subheader("Key Metrics")
