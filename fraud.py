@@ -3,22 +3,21 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import OneHotEncoder, RobustScaler
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, StratifiedKFold
+from sklearn.preprocessing import RobustScaler
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
     recall_score,
     f1_score,
-    roc_auc_score,
     average_precision_score,
     confusion_matrix,
     classification_report,
 )
 from xgboost import XGBClassifier
-from sklearn.pipeline import Pipeline
+from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import Pipeline as ImbPipeline
 
 st.set_page_config(page_title="Fraud Detection App", layout="wide")
 st.title("Fraud Detection App")
@@ -41,64 +40,43 @@ def encode_target(series):
     return clean.map(mapping).astype(int)
 
 
-def cap_outliers_3sigma(train_df, test_df):
-    train_capped = train_df.copy()
-    test_capped = test_df.copy()
-    for col in train_df.columns:
-        if not pd.api.types.is_numeric_dtype(train_df[col]):
-            continue
-        if train_df[col].nunique(dropna=True) <= 1:
-            continue
-        mean = train_df[col].mean()
-        std = train_df[col].std()
-        if pd.isna(std) or std == 0:
-            continue
-        lower_bound = mean - 3 * std
-        upper_bound = mean + 3 * std
-        train_capped[col] = train_capped[col].clip(lower=lower_bound, upper=upper_bound)
-        test_capped[col] = test_capped[col].clip(lower=lower_bound, upper=upper_bound)
-    return train_capped, test_capped
+class FraudPreprocessor(BaseEstimator, TransformerMixin):
+    def __init__(self, scale_columns=None):
+        self.scale_columns = scale_columns or ["Time", "Amount"]
 
+    def fit(self, X, y=None):
+        X = X.copy()
+        self.numeric_columns_ = [col for col in X.columns if pd.api.types.is_numeric_dtype(X[col])]
+        self.scaler_ = {}
+        for col in self.scale_columns:
+            if col in self.numeric_columns_:
+                scaler = RobustScaler()
+                scaler.fit(X[[col]].astype(float))
+                self.scaler_[col] = scaler
+        return self
 
-def build_preprocessor(X_train, X_test):
-    numeric_columns = X_train.select_dtypes(include=[np.number]).columns.tolist()
-    categorical_columns = X_train.select_dtypes(exclude=[np.number]).columns.tolist()
+    def transform(self, X):
+        X = X.copy()
+        for col in self.numeric_columns_:
+            if col not in X.columns:
+                continue
+            if not pd.api.types.is_numeric_dtype(X[col]):
+                continue
+            if X[col].nunique(dropna=True) <= 1:
+                continue
+            mean = X[col].mean()
+            std = X[col].std()
+            if pd.isna(std) or std == 0:
+                continue
+            lower_bound = mean - 3 * std
+            upper_bound = mean + 3 * std
+            X[col] = X[col].clip(lower=lower_bound, upper=upper_bound)
 
-    transformers = []
-    if numeric_columns:
-        transformers.append(
-            (
-                "num",
-                Pipeline(
-                    steps=[
-                        ("imputer", SimpleImputer(strategy="median")),
-                        ("scaler", RobustScaler()),
-                    ]
-                ),
-                numeric_columns,
-            )
-        )
-    if categorical_columns:
-        transformers.append(
-            (
-                "cat",
-                Pipeline(
-                    steps=[
-                        ("imputer", SimpleImputer(strategy="most_frequent")),
-                        ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
-                    ]
-                ),
-                categorical_columns,
-            )
-        )
+        for col, scaler in self.scaler_.items():
+            if col in X.columns:
+                X[col] = scaler.transform(X[[col]].astype(float)).ravel()
 
-    if not transformers:
-        raise ValueError("The uploaded data does not contain any usable feature columns.")
-
-    preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
-    X_train_prepared = preprocessor.fit_transform(X_train)
-    X_test_prepared = preprocessor.transform(X_test)
-    return preprocessor, X_train_prepared, X_test_prepared
+        return X
 
 
 def run_pipeline(df, target_column, test_size, random_state=42):
@@ -116,61 +94,62 @@ def run_pipeline(df, target_column, test_size, random_state=42):
     y_train = y_train.reset_index(drop=True)
     y_test = y_test.reset_index(drop=True)
 
-    X_train_capped, X_test_capped = cap_outliers_3sigma(X_train, X_test)
-    preprocessor, X_train_prepared, X_test_prepared = build_preprocessor(X_train_capped, X_test_capped)
+    preprocessor = FraudPreprocessor(scale_columns=["Time", "Amount"])
 
-    base_model = XGBClassifier(
-        objective="binary:logistic",
-        eval_metric="logloss",
-        random_state=random_state,
+    pipeline = ImbPipeline(
+        steps=[
+            ("preprocess", preprocessor),
+            ("smote", SMOTE(random_state=random_state)),
+            (
+                "classifier",
+                XGBClassifier(
+                    objective="binary:logistic",
+                    eval_metric="logloss",
+                    random_state=random_state,
+                ),
+            ),
+        ]
     )
 
     param_grid = {
-        "n_estimators": [100, 200, 300],
-        "max_depth": [3, 4, 5],
-        "learning_rate": [0.05, 0.1, 0.2],
-        "subsample": [0.8, 1.0],
-        "colsample_bytree": [0.8, 1.0],
+        "classifier__n_estimators": [100, 200, 300],
+        "classifier__max_depth": [3, 4, 5],
+        "classifier__learning_rate": [0.05, 0.1, 0.2],
+        "classifier__subsample": [0.8, 1.0],
+        "classifier__colsample_bytree": [0.8, 1.0],
     }
 
     tuner = RandomizedSearchCV(
-        estimator=base_model,
+        estimator=pipeline,
         param_distributions=param_grid,
         n_iter=12,
         scoring="average_precision",
-        cv=3,
+        cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=random_state),
         n_jobs=-1,
         random_state=random_state,
         verbose=0,
     )
-    tuner.fit(X_train_prepared, y_train)
+    tuner.fit(X_train, y_train)
 
     best_params = tuner.best_params_
-    final_model = XGBClassifier(
-        objective="binary:logistic",
-        eval_metric="logloss",
-        random_state=random_state,
-        **best_params,
-    )
-    final_model.fit(X_train_prepared, y_train)
-    predictions = final_model.predict(X_test_prepared)
-    probabilities = final_model.predict_proba(X_test_prepared)[:, 1]
+    final_model = tuner.best_estimator_
+    predictions = final_model.predict(X_test)
+    probabilities = final_model.predict_proba(X_test)[:, 1]
 
     metrics = {
         "accuracy": round(float(accuracy_score(y_test, predictions)), 4),
         "precision": round(float(precision_score(y_test, predictions, zero_division=0)), 4),
         "recall": round(float(recall_score(y_test, predictions, zero_division=0)), 4),
         "f1_score": round(float(f1_score(y_test, predictions, zero_division=0)), 4),
-        "roc_auc": round(float(roc_auc_score(y_test, probabilities)), 4),
         "pr_auc": round(float(average_precision_score(y_test, probabilities)), 4),
     }
 
     cm = confusion_matrix(y_test, predictions)
     report = classification_report(y_test, predictions, target_names=["Negative", "Positive"], output_dict=True)
 
-    feature_names = preprocessor.get_feature_names_out()
+    feature_names = X_train.columns.tolist()
     importances = pd.DataFrame(
-        {"feature": feature_names, "importance": final_model.feature_importances_}
+        {"feature": feature_names, "importance": final_model.named_steps["classifier"].feature_importances_}
     ).sort_values(by="importance", ascending=False).head(15)
 
     insights = []
@@ -184,10 +163,10 @@ def run_pipeline(df, target_column, test_size, random_state=42):
     else:
         insights.append("Precision is healthy, so the flagged cases are more likely to be true positives.")
 
-    if metrics["roc_auc"] > 0.85:
-        insights.append("The ROC AUC is strong, suggesting the ranking quality is good for fraud detection.")
+    if metrics["pr_auc"] > 0.8:
+        insights.append("The PR AUC is strong, indicating the model ranks positive cases well under class imbalance.")
     else:
-        insights.append("The ROC AUC is moderate, so the model could benefit from more tuning or additional engineered features.")
+        insights.append("The PR AUC is moderate, so the model could benefit from more tuning or additional feature engineering.")
 
     return {
         "metrics": metrics,
@@ -230,10 +209,11 @@ if uploaded_file is not None:
 
             st.subheader("Workflow Summary")
             st.write("1. Train/test split with stratification")
-            st.write("2. Outlier capping fitted on the training set and applied to both train/test")
-            st.write("3. RobustScaler and imputation applied after fitting on the training set")
-            st.write("4. XGBoost hyperparameter tuning on the training data")
-            st.write("5. Final retraining with the best hyperparameters and evaluation on the held-out test set")
+            st.write("2. Outlier capping fitted on the training set and applied to the test set using the same bounds")
+            st.write("3. RobustScaler fitted on the training set and applied to the test set using the same statistics")
+            st.write("4. SMOTE applied within the training folds during cross-validation")
+            st.write("5. XGBoost hyperparameter tuning on the training data with 5-fold cross-validation")
+            st.write("6. Final retraining with the best hyperparameters and evaluation on the held-out test set")
 
             st.subheader("Key Metrics")
             metric_cols = st.columns(6)
@@ -242,7 +222,6 @@ if uploaded_file is not None:
                 ("Precision", result["metrics"]["precision"]),
                 ("Recall", result["metrics"]["recall"]),
                 ("F1 Score", result["metrics"]["f1_score"]),
-                ("ROC AUC", result["metrics"]["roc_auc"]),
                 ("PR AUC", result["metrics"]["pr_auc"]),
             ]
             for col, (label, value) in zip(metric_cols, metric_items):
