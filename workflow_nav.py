@@ -5,6 +5,36 @@ def hide_default_nav():
     st.set_option("client.showSidebarNavigation", False)
 
 
+def reset_workflow_state():
+    keys_to_clear = [
+        "df",
+        "target_column",
+        "X_train",
+        "X_test",
+        "y_train",
+        "y_test",
+        "test_size",
+        "random_state",
+        "preprocessor",
+        "cv",
+        "fold_summaries",
+        "X_train_prepared",
+        "best_model",
+        "best_params",
+        "preprocess_started",
+        "evaluate_started",
+        "step_complete_1",
+        "step_complete_2",
+        "step_complete_3",
+        "step_complete_4",
+        "current_step",
+        "latest_completed_step",
+    ]
+    for key in keys_to_clear:
+        st.session_state.pop(key, None)
+    st.session_state["current_step"] = 1
+
+
 def _derive_active_step(current_step=None):
     if st.session_state.get("step_complete_4", False):
         return 4
@@ -55,5 +85,9 @@ def render_workflow_nav(current_step=None):
         if st.sidebar.button(display_label, key=f"nav_{step}", disabled=disabled, use_container_width=True):
             st.switch_page(target)
 
-    if st.session_state.get("step_complete_2", False):
-        st.sidebar.success("Preprocessing complete. Tune model is now available.")
+    if st.session_state.get("latest_completed_step") == 2:
+        st.sidebar.success("Step 2 complete. Tune model is now available.")
+    elif st.session_state.get("latest_completed_step") == 3:
+        st.sidebar.success("Step 3 complete. Evaluation is now available.")
+    elif st.session_state.get("latest_completed_step") == 4:
+        st.sidebar.success("Workflow complete. You can start a new upload.")

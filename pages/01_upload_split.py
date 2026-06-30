@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from workflow_nav import hide_default_nav, render_workflow_nav
+from workflow_nav import hide_default_nav, render_workflow_nav, reset_workflow_state
 
 st.set_page_config(page_title="Upload & Split", layout="wide")
 hide_default_nav()
@@ -24,6 +24,12 @@ if not allowed:
     st.stop()
 
 st.title("1. Upload Dataset and Create Train/Test Split")
+
+if st.session_state.get("step_complete_4", False) or st.session_state.get("latest_completed_step") == 4:
+    st.warning("The current pipeline is complete. You can start a new upload below.")
+    if st.button("Start a new pipeline", use_container_width=True):
+        reset_workflow_state()
+        st.rerun()
 
 uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
 if uploaded_file is not None:
@@ -58,6 +64,7 @@ if uploaded_file is not None:
         st.session_state["step_complete_2"] = False
         st.session_state["step_complete_3"] = False
         st.session_state["step_complete_4"] = False
+        st.session_state["latest_completed_step"] = 1
         st.session_state["current_step"] = 2
         st.success("Train/test split created.")
         st.write(f"Training rows: {len(X_train)}")

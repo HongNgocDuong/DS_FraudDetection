@@ -139,6 +139,7 @@ st.session_state["cv"] = cv
 st.session_state["fold_summaries"] = fold_summaries
 st.session_state["X_train_prepared"] = X_train_prepared
 st.session_state["step_complete_2"] = True
+st.session_state["latest_completed_step"] = 2
 st.session_state["current_step"] = 3
 st.session_state["preprocess_started"] = True
 

@@ -74,6 +74,7 @@ if st.button("Run hyperparameter tuning", use_container_width=True):
     st.session_state["best_params"] = tuner.best_params_
     st.session_state["step_complete_3"] = True
     st.session_state["step_complete_4"] = False
+    st.session_state["latest_completed_step"] = 3
     st.session_state["current_step"] = 4
     st.success("Hyperparameter tuning completed.")
     st.json(st.session_state["best_params"])

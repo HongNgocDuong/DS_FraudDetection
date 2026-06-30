@@ -61,6 +61,7 @@ metrics = {
 }
 
 st.session_state["step_complete_4"] = True
+st.session_state["latest_completed_step"] = 4
 st.session_state["current_step"] = 5
 st.session_state["evaluate_started"] = True
 st.success("Evaluation completed on the held-out test set.")
