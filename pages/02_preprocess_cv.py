@@ -142,5 +142,5 @@ st.session_state["step_complete_2"] = True
 st.session_state["current_step"] = 3
 st.session_state["preprocess_started"] = True
 
-st.success("Stratified folds created and preprocessing applied inside each fold.")
+st.success("Preprocessing complete. Step 2 is finished and the Tune model step is now unlocked.")
 st.dataframe(pd.DataFrame(fold_summaries), use_container_width=True)

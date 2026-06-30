@@ -32,6 +32,9 @@ for label, done in steps:
         status = "⏳ Pending"
     st.write(f"{status} — {label}")
 
+if st.session_state.get("step_complete_2", False):
+    st.success("Preprocessing is complete. You can now move to the Tune model step.")
+
 if "df" in st.session_state:
     st.success("Dataset loaded and ready for the next step.")
     st.dataframe(st.session_state["df"].head(), use_container_width=True)

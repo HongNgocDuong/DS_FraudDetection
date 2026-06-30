@@ -6,6 +6,10 @@ def hide_default_nav():
 
 
 def _derive_active_step(current_step=None):
+    session_step = st.session_state.get("current_step")
+    if session_step is not None:
+        return min(max(int(session_step), 1), 4)
+
     if current_step is not None:
         return min(max(current_step, 1), 4)
 
