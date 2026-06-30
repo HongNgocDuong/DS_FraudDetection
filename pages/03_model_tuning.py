@@ -5,8 +5,11 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE
+from workflow_nav import hide_default_nav, render_workflow_nav
 
 st.set_page_config(page_title="Model Tuning", layout="wide")
+hide_default_nav()
+render_workflow_nav(3)
 
 if "current_step" not in st.session_state:
     st.session_state["current_step"] = 1
@@ -29,7 +32,14 @@ if not st.session_state.get("step_complete_2", False):
 
 st.write("Random Forest will be tuned using stratified cross-validation with SMOTE applied inside each fold.")
 
-if st.button("Run hyperparameter tuning"):
+if st.button("Run hyperparameter tuning", use_container_width=True):
+    if "X_train_prepared" not in st.session_state:
+        preprocessor = st.session_state.get("preprocessor")
+        if preprocessor is None:
+            st.error("Preprocessing state is missing. Please return to Step 2 and complete it again.")
+            st.stop()
+        st.session_state["X_train_prepared"] = preprocessor.transform(st.session_state["X_train"])
+
     pipeline = ImbPipeline(
         steps=[
             ("smote", SMOTE(random_state=st.session_state.get("random_state", 42))),

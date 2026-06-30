@@ -1,7 +1,10 @@
 import streamlit as st
 import pandas as pd
+from workflow_nav import hide_default_nav, render_workflow_nav
 
 st.set_page_config(page_title="Fraud Detection Pipeline", layout="wide")
+hide_default_nav()
+render_workflow_nav(1)
 st.title("Fraud Detection ML Pipeline")
 st.write("This multi-page app walks through the full fraud detection workflow from data upload to final evaluation.")
 

@@ -13,8 +13,11 @@ from sklearn.metrics import (
     confusion_matrix,
     classification_report,
 )
+from workflow_nav import hide_default_nav, render_workflow_nav
 
 st.set_page_config(page_title="Evaluate Model", layout="wide")
+hide_default_nav()
+render_workflow_nav(4)
 
 if "current_step" not in st.session_state:
     st.session_state["current_step"] = 1
@@ -35,6 +38,13 @@ if not st.session_state.get("step_complete_3", False):
     st.info("Please complete Step 3 first before evaluating the model.")
     st.stop()
 
+if st.button("Start evaluation", use_container_width=True):
+    st.session_state["evaluate_started"] = True
+
+if not st.session_state.get("evaluate_started", False):
+    st.info("Press the button above to start evaluation.")
+    st.stop()
+
 preprocessor = st.session_state["preprocessor"]
 X_test_prepared = preprocessor.transform(st.session_state["X_test"])
 
@@ -52,6 +62,7 @@ metrics = {
 
 st.session_state["step_complete_4"] = True
 st.session_state["current_step"] = 5
+st.session_state["evaluate_started"] = True
 st.success("Evaluation completed on the held-out test set.")
 
 metric_cols = st.columns(5)

@@ -2,8 +2,11 @@ import streamlit as st
 import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import train_test_split
+from workflow_nav import hide_default_nav, render_workflow_nav
 
 st.set_page_config(page_title="Upload & Split", layout="wide")
+hide_default_nav()
+render_workflow_nav(1)
 
 if "current_step" not in st.session_state:
     st.session_state["current_step"] = 1

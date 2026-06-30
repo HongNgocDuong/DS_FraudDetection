@@ -4,8 +4,11 @@ from pathlib import Path
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import RobustScaler
 from sklearn.model_selection import StratifiedKFold
+from workflow_nav import hide_default_nav, render_workflow_nav
 
 st.set_page_config(page_title="Preprocess & CV", layout="wide")
+hide_default_nav()
+render_workflow_nav(2)
 
 if "current_step" not in st.session_state:
     st.session_state["current_step"] = 1
@@ -30,6 +33,13 @@ st.write("The workflow below creates stratified folds first and then applies pre
 st.write("- stratified k-fold split on the training set")
 st.write("- 3-sigma capping for numeric features")
 st.write("- RobustScaler for Amount and Time")
+
+if st.button("Start preprocessing", use_container_width=True):
+    st.session_state["preprocess_started"] = True
+
+if not st.session_state.get("preprocess_started", False):
+    st.info("Press the button above to start preprocessing.")
+    st.stop()
 
 class FraudPreprocessor(BaseEstimator, TransformerMixin):
     def __init__(self, scale_columns=None):
@@ -122,12 +132,15 @@ for fold_idx, (train_idx, val_idx) in enumerate(cv.split(st.session_state["X_tra
 
 preprocessor = FraudPreprocessor(scale_columns=["Time", "Amount"])
 preprocessor.fit(st.session_state["X_train"])
+X_train_prepared = preprocessor.transform(st.session_state["X_train"])
 
 st.session_state["preprocessor"] = preprocessor
 st.session_state["cv"] = cv
 st.session_state["fold_summaries"] = fold_summaries
+st.session_state["X_train_prepared"] = X_train_prepared
 st.session_state["step_complete_2"] = True
 st.session_state["current_step"] = 3
+st.session_state["preprocess_started"] = True
 
 st.success("Stratified folds created and preprocessing applied inside each fold.")
 st.dataframe(pd.DataFrame(fold_summaries), use_container_width=True)
