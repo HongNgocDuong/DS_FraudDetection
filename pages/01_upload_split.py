@@ -34,6 +34,10 @@ if uploaded_file is not None:
         st.session_state["y_test"] = y_test.reset_index(drop=True)
         st.session_state["test_size"] = test_size
         st.session_state["random_state"] = int(random_state)
+        st.session_state["step_complete_1"] = True
+        st.session_state["step_complete_2"] = False
+        st.session_state["step_complete_3"] = False
+        st.session_state["step_complete_4"] = False
         st.success("Train/test split created.")
         st.write(f"Training rows: {len(X_train)}")
         st.write(f"Test rows: {len(X_test)}")

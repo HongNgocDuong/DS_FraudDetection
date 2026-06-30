@@ -1,23 +1,20 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import RobustScaler
 from sklearn.model_selection import StratifiedKFold
-from imblearn.over_sampling import SMOTE
 
 st.set_page_config(page_title="Preprocess & CV", layout="wide")
 st.title("2. Stratified K-Fold Preprocessing")
 
-if "X_train" not in st.session_state:
-    st.info("Complete the previous step to create a train/test split first.")
+if not st.session_state.get("step_complete_1", False):
+    st.info("Please complete Step 1 first by creating a train/test split.")
     st.stop()
 
-st.write("Preprocessing steps for the training set:")
+st.write("The workflow below creates stratified folds first and then applies preprocessing inside each fold:")
+st.write("- stratified k-fold split on the training set")
 st.write("- 3-sigma capping for numeric features")
 st.write("- RobustScaler for Amount and Time")
-st.write("- SMOTE to handle class imbalance")
-st.write("- 5-fold stratified cross-validation")
 
 class FraudPreprocessor(BaseEstimator, TransformerMixin):
     def __init__(self, scale_columns=None):
@@ -56,13 +53,65 @@ class FraudPreprocessor(BaseEstimator, TransformerMixin):
                 X[col] = scaler.transform(X[[col]].astype(float)).ravel()
         return X
 
+
+def apply_fold_preprocessing(X_train_fold, X_val_fold, scale_columns=None):
+    X_train_fold = X_train_fold.copy()
+    X_val_fold = X_val_fold.copy()
+    numeric_columns = [col for col in X_train_fold.columns if pd.api.types.is_numeric_dtype(X_train_fold[col])]
+
+    for col in numeric_columns:
+        if X_train_fold[col].nunique(dropna=True) <= 1:
+            continue
+        mean = X_train_fold[col].mean()
+        std = X_train_fold[col].std()
+        if pd.isna(std) or std == 0:
+            continue
+        lower_bound = mean - 3 * std
+        upper_bound = mean + 3 * std
+        X_train_fold[col] = X_train_fold[col].clip(lower=lower_bound, upper=upper_bound)
+        X_val_fold[col] = X_val_fold[col].clip(lower=lower_bound, upper=upper_bound)
+
+    scalers = {}
+    for col in scale_columns or ["Time", "Amount"]:
+        if col in numeric_columns:
+            scaler = RobustScaler()
+            scaler.fit(X_train_fold[[col]].astype(float))
+            X_train_fold[col] = scaler.transform(X_train_fold[[col]].astype(float)).ravel()
+            X_val_fold[col] = scaler.transform(X_val_fold[[col]].astype(float)).ravel()
+            scalers[col] = scaler
+
+    return X_train_fold, X_val_fold, scalers
+
+
+random_state = st.session_state.get("random_state", 42)
+y_train = st.session_state["y_train"].astype(int)
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=random_state)
+fold_summaries = []
+
+for fold_idx, (train_idx, val_idx) in enumerate(cv.split(st.session_state["X_train"], y_train), start=1):
+    X_train_fold = st.session_state["X_train"].iloc[train_idx].copy()
+    X_val_fold = st.session_state["X_train"].iloc[val_idx].copy()
+    y_train_fold = y_train.iloc[train_idx].copy()
+    y_val_fold = y_train.iloc[val_idx].copy()
+
+    X_train_fold_proc, X_val_fold_proc, _ = apply_fold_preprocessing(X_train_fold, X_val_fold, scale_columns=["Time", "Amount"])
+
+    fold_summaries.append(
+        {
+            "fold": fold_idx,
+            "train_rows": len(X_train_fold),
+            "val_rows": len(X_val_fold),
+            "class_ratio": float(y_train_fold.mean()),
+        }
+    )
+
 preprocessor = FraudPreprocessor(scale_columns=["Time", "Amount"])
-X_train_prepared = preprocessor.fit_transform(st.session_state["X_train"])
+preprocessor.fit(st.session_state["X_train"])
 
 st.session_state["preprocessor"] = preprocessor
-st.session_state["X_train_prepared"] = X_train_prepared
-st.session_state["cv"] = StratifiedKFold(n_splits=5, shuffle=True, random_state=st.session_state.get("random_state", 42))
-st.session_state["smote"] = SMOTE(random_state=st.session_state.get("random_state", 42))
+st.session_state["cv"] = cv
+st.session_state["fold_summaries"] = fold_summaries
+st.session_state["step_complete_2"] = True
 
-st.success("Training preprocessing and CV configuration prepared.")
-st.dataframe(pd.DataFrame(X_train_prepared).head(), use_container_width=True)
+st.success("Stratified folds created and preprocessing applied inside each fold.")
+st.dataframe(pd.DataFrame(fold_summaries), use_container_width=True)

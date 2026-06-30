@@ -16,8 +16,8 @@ from sklearn.metrics import (
 st.set_page_config(page_title="Evaluate Model", layout="wide")
 st.title("4. Apply Preprocessing to Test Set and Evaluate")
 
-if "best_model" not in st.session_state or "X_test" not in st.session_state:
-    st.info("Complete the training and tuning step first.")
+if not st.session_state.get("step_complete_3", False):
+    st.info("Please complete Step 3 first before evaluating the model.")
     st.stop()
 
 preprocessor = st.session_state["preprocessor"]
@@ -35,6 +35,7 @@ metrics = {
     "pr_auc": round(float(average_precision_score(y_test, probabilities)), 4),
 }
 
+st.session_state["step_complete_4"] = True
 st.success("Evaluation completed on the held-out test set.")
 
 metric_cols = st.columns(5)

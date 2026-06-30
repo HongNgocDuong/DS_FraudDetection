@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
 from imblearn.pipeline import Pipeline as ImbPipeline
@@ -9,8 +8,8 @@ from imblearn.over_sampling import SMOTE
 st.set_page_config(page_title="Model Tuning", layout="wide")
 st.title("3. Train and Tune the Random Forest Model")
 
-if "X_train_prepared" not in st.session_state or "y_train" not in st.session_state:
-    st.info("Complete the preprocessing step first.")
+if not st.session_state.get("step_complete_2", False):
+    st.info("Please complete Step 2 first before tuning the model.")
     st.stop()
 
 st.write("Random Forest will be tuned using stratified cross-validation with SMOTE applied inside each fold.")
@@ -48,6 +47,8 @@ if st.button("Run hyperparameter tuning"):
     tuner.fit(st.session_state["X_train_prepared"], st.session_state["y_train"].astype(int))
     st.session_state["best_model"] = tuner.best_estimator_
     st.session_state["best_params"] = tuner.best_params_
+    st.session_state["step_complete_3"] = True
+    st.session_state["step_complete_4"] = False
     st.success("Hyperparameter tuning completed.")
     st.json(st.session_state["best_params"])
 else:

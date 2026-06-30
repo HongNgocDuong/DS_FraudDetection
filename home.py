@@ -13,7 +13,18 @@ st.markdown("""
 4. Apply the same preprocessing to the test set and evaluate the final model.
 """)
 
-st.info("Use the sidebar to navigate between the workflow stages.")
+st.info("Complete each step in order. Later pages stay locked until the previous step is finished.")
+
+steps = [
+    ("1. Upload and split", st.session_state.get("step_complete_1", False)),
+    ("2. Preprocess and cross-validation", st.session_state.get("step_complete_2", False)),
+    ("3. Model tuning", st.session_state.get("step_complete_3", False)),
+    ("4. Evaluation", st.session_state.get("step_complete_4", False)),
+]
+
+for label, done in steps:
+    status = "✅" if done else "⏳"
+    st.write(f"{status} {label}")
 
 if "df" in st.session_state:
     st.success("Dataset loaded and ready for the next step.")
