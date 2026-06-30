@@ -6,15 +6,8 @@ def hide_default_nav():
 
 
 def _derive_active_step(current_step=None):
-    session_step = st.session_state.get("current_step")
-    if session_step is not None:
-        return min(max(int(session_step), 1), 4)
-
-    if current_step is not None:
-        return min(max(current_step, 1), 4)
-
     if st.session_state.get("step_complete_4", False):
-        return 5
+        return 4
     if st.session_state.get("step_complete_3", False):
         return 4
     if st.session_state.get("step_complete_2", False):
@@ -61,3 +54,6 @@ def render_workflow_nav(current_step=None):
 
         if st.sidebar.button(display_label, key=f"nav_{step}", disabled=disabled, use_container_width=True):
             st.switch_page(target)
+
+    if st.session_state.get("step_complete_2", False):
+        st.sidebar.success("Preprocessing complete. Tune model is now available.")
