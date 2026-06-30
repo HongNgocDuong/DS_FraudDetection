@@ -1,8 +1,25 @@
 import streamlit as st
 import pandas as pd
+from pathlib import Path
 from sklearn.model_selection import train_test_split
 
 st.set_page_config(page_title="Upload & Split", layout="wide")
+
+if "current_step" not in st.session_state:
+    st.session_state["current_step"] = 1
+
+current_page = Path(__file__).name
+current_step = st.session_state.get("current_step", 1)
+page_step = 1
+allowed = current_step == 1 if page_step == 1 else page_step <= current_step
+if not allowed:
+    target_page = "home.py"
+    if current_step > 1:
+        target_page = ["pages/01_upload_split.py", "pages/02_preprocess_cv.py", "pages/03_model_tuning.py", "pages/04_evaluate.py"][current_step - 1]
+    st.info("This workflow only moves forward. You are being returned to the current step.")
+    st.switch_page(target_page)
+    st.stop()
+
 st.title("1. Upload Dataset and Create Train/Test Split")
 
 uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
@@ -38,6 +55,7 @@ if uploaded_file is not None:
         st.session_state["step_complete_2"] = False
         st.session_state["step_complete_3"] = False
         st.session_state["step_complete_4"] = False
+        st.session_state["current_step"] = 2
         st.success("Train/test split created.")
         st.write(f"Training rows: {len(X_train)}")
         st.write(f"Test rows: {len(X_test)}")

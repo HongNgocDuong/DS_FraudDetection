@@ -1,11 +1,26 @@
 import streamlit as st
 import pandas as pd
+from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE
 
 st.set_page_config(page_title="Model Tuning", layout="wide")
+
+if "current_step" not in st.session_state:
+    st.session_state["current_step"] = 1
+
+current_page = Path(__file__).name
+current_step = st.session_state.get("current_step", 1)
+page_step = 3
+allowed = page_step <= current_step
+if not allowed:
+    target_page = ["home.py", "pages/01_upload_split.py", "pages/02_preprocess_cv.py", "pages/03_model_tuning.py", "pages/04_evaluate.py"][current_step - 1]
+    st.info("This workflow only moves forward. You are being returned to the current step.")
+    st.switch_page(target_page)
+    st.stop()
+
 st.title("3. Train and Tune the Random Forest Model")
 
 if not st.session_state.get("step_complete_2", False):
@@ -49,6 +64,7 @@ if st.button("Run hyperparameter tuning"):
     st.session_state["best_params"] = tuner.best_params_
     st.session_state["step_complete_3"] = True
     st.session_state["step_complete_4"] = False
+    st.session_state["current_step"] = 4
     st.success("Hyperparameter tuning completed.")
     st.json(st.session_state["best_params"])
 else:

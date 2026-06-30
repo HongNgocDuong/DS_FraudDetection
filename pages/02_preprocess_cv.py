@@ -1,10 +1,25 @@
 import streamlit as st
 import pandas as pd
+from pathlib import Path
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import RobustScaler
 from sklearn.model_selection import StratifiedKFold
 
 st.set_page_config(page_title="Preprocess & CV", layout="wide")
+
+if "current_step" not in st.session_state:
+    st.session_state["current_step"] = 1
+
+current_page = Path(__file__).name
+current_step = st.session_state.get("current_step", 1)
+page_step = 2
+allowed = page_step <= current_step
+if not allowed:
+    target_page = ["home.py", "pages/01_upload_split.py", "pages/02_preprocess_cv.py", "pages/03_model_tuning.py", "pages/04_evaluate.py"][current_step - 1]
+    st.info("This workflow only moves forward. You are being returned to the current step.")
+    st.switch_page(target_page)
+    st.stop()
+
 st.title("2. Stratified K-Fold Preprocessing")
 
 if not st.session_state.get("step_complete_1", False):
@@ -112,6 +127,7 @@ st.session_state["preprocessor"] = preprocessor
 st.session_state["cv"] = cv
 st.session_state["fold_summaries"] = fold_summaries
 st.session_state["step_complete_2"] = True
+st.session_state["current_step"] = 3
 
 st.success("Stratified folds created and preprocessing applied inside each fold.")
 st.dataframe(pd.DataFrame(fold_summaries), use_container_width=True)

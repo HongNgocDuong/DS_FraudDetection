@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from pathlib import Path
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -14,6 +15,20 @@ from sklearn.metrics import (
 )
 
 st.set_page_config(page_title="Evaluate Model", layout="wide")
+
+if "current_step" not in st.session_state:
+    st.session_state["current_step"] = 1
+
+current_page = Path(__file__).name
+current_step = st.session_state.get("current_step", 1)
+page_step = 4
+allowed = page_step <= current_step
+if not allowed:
+    target_page = ["home.py", "pages/01_upload_split.py", "pages/02_preprocess_cv.py", "pages/03_model_tuning.py", "pages/04_evaluate.py"][current_step - 1]
+    st.info("This workflow only moves forward. You are being returned to the current step.")
+    st.switch_page(target_page)
+    st.stop()
+
 st.title("4. Apply Preprocessing to Test Set and Evaluate")
 
 if not st.session_state.get("step_complete_3", False):
@@ -36,6 +51,7 @@ metrics = {
 }
 
 st.session_state["step_complete_4"] = True
+st.session_state["current_step"] = 5
 st.success("Evaluation completed on the held-out test set.")
 
 metric_cols = st.columns(5)
