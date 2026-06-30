@@ -3,9 +3,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, RobustScaler
 from sklearn.metrics import (
@@ -18,35 +17,19 @@ from sklearn.metrics import (
     confusion_matrix,
     classification_report,
 )
-from imblearn.pipeline import Pipeline as ImbPipeline
-from imblearn.over_sampling import SMOTE
 from xgboost import XGBClassifier
+from sklearn.pipeline import Pipeline
 
 st.set_page_config(page_title="Fraud Detection App", layout="wide")
 st.title("Fraud Detection App")
 st.write(
-    "Upload a CSV file, choose the target column, and train an XGBoost classifier to detect fraud-like outcomes."
+    "This workflow follows the requested sequence: split into train/test, preprocess the training data with outlier capping and RobustScaler, tune XGBoost, retrain with the best hyperparameters, and evaluate on the test set."
 )
 
 
 @st.cache_data(show_spinner=False)
 def load_csv(uploaded_file):
     return pd.read_csv(uploaded_file)
-
-
-def cap_outliers_3sigma(df, numeric_columns):
-    df_capped = df.copy()
-    for col in numeric_columns:
-        if col not in df_capped.columns:
-            continue
-        mean = df_capped[col].mean()
-        std = df_capped[col].std()
-        if pd.isna(std) or std == 0:
-            continue
-        lower_bound = mean - 3 * std
-        upper_bound = mean + 3 * std
-        df_capped[col] = df_capped[col].clip(lower=lower_bound, upper=upper_bound)
-    return df_capped
 
 
 def encode_target(series):
@@ -58,9 +41,28 @@ def encode_target(series):
     return clean.map(mapping).astype(int)
 
 
-def build_preprocessor(X):
-    numeric_columns = X.select_dtypes(include=[np.number]).columns.tolist()
-    categorical_columns = X.select_dtypes(exclude=[np.number]).columns.tolist()
+def cap_outliers_3sigma(train_df, test_df):
+    train_capped = train_df.copy()
+    test_capped = test_df.copy()
+    for col in train_df.columns:
+        if not pd.api.types.is_numeric_dtype(train_df[col]):
+            continue
+        if train_df[col].nunique(dropna=True) <= 1:
+            continue
+        mean = train_df[col].mean()
+        std = train_df[col].std()
+        if pd.isna(std) or std == 0:
+            continue
+        lower_bound = mean - 3 * std
+        upper_bound = mean + 3 * std
+        train_capped[col] = train_capped[col].clip(lower=lower_bound, upper=upper_bound)
+        test_capped[col] = test_capped[col].clip(lower=lower_bound, upper=upper_bound)
+    return train_capped, test_capped
+
+
+def build_preprocessor(X_train, X_test):
+    numeric_columns = X_train.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_columns = X_train.select_dtypes(exclude=[np.number]).columns.tolist()
 
     transformers = []
     if numeric_columns:
@@ -83,7 +85,7 @@ def build_preprocessor(X):
                 Pipeline(
                     steps=[
                         ("imputer", SimpleImputer(strategy="most_frequent")),
-                        ("onehot", OneHotEncoder(handle_unknown="ignore")),
+                        ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
                     ]
                 ),
                 categorical_columns,
@@ -93,61 +95,66 @@ def build_preprocessor(X):
     if not transformers:
         raise ValueError("The uploaded data does not contain any usable feature columns.")
 
-    return ColumnTransformer(transformers=transformers, remainder="drop")
+    preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
+    X_train_prepared = preprocessor.fit_transform(X_train)
+    X_test_prepared = preprocessor.transform(X_test)
+    return preprocessor, X_train_prepared, X_test_prepared
 
 
-def prepare_and_train(df, target_column, test_size, use_smote, random_state=42):
+def run_pipeline(df, target_column, test_size, random_state=42):
     if target_column not in df.columns:
         raise ValueError(f"Target column '{target_column}' was not found in the uploaded data.")
 
     X = df.drop(columns=[target_column]).copy()
     y = encode_target(df[target_column])
 
-    numeric_columns = X.select_dtypes(include=[np.number]).columns.tolist()
-    if numeric_columns:
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, stratify=y, random_state=random_state
-        )
-        X_train_capped = cap_outliers_3sigma(X_train, numeric_columns)
-        X_test_capped = cap_outliers_3sigma(X_test, numeric_columns)
-        X_train_capped = X_train_capped.reset_index(drop=True)
-        X_test_capped = X_test_capped.reset_index(drop=True)
-        y_train = y_train.reset_index(drop=True)
-        y_test = y_test.reset_index(drop=True)
-    else:
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, stratify=y, random_state=random_state
-        )
-        X_train_capped = X_train.reset_index(drop=True)
-        X_test_capped = X_test.reset_index(drop=True)
-        y_train = y_train.reset_index(drop=True)
-        y_test = y_test.reset_index(drop=True)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, stratify=y, random_state=random_state
+    )
+    X_train = X_train.reset_index(drop=True)
+    X_test = X_test.reset_index(drop=True)
+    y_train = y_train.reset_index(drop=True)
+    y_test = y_test.reset_index(drop=True)
 
-    preprocessor = build_preprocessor(X_train_capped)
-    xgb_model = XGBClassifier(
-        n_estimators=250,
-        max_depth=4,
-        learning_rate=0.1,
-        subsample=0.8,
-        colsample_bytree=0.8,
+    X_train_capped, X_test_capped = cap_outliers_3sigma(X_train, X_test)
+    preprocessor, X_train_prepared, X_test_prepared = build_preprocessor(X_train_capped, X_test_capped)
+
+    base_model = XGBClassifier(
+        objective="binary:logistic",
         eval_metric="logloss",
         random_state=random_state,
     )
 
-    if use_smote:
-        model = ImbPipeline(
-            steps=[
-                ("preprocess", preprocessor),
-                ("smote", SMOTE(random_state=random_state)),
-                ("classifier", xgb_model),
-            ]
-        )
-    else:
-        model = Pipeline(steps=[("preprocess", preprocessor), ("classifier", xgb_model)])
+    param_grid = {
+        "n_estimators": [100, 200, 300],
+        "max_depth": [3, 4, 5],
+        "learning_rate": [0.05, 0.1, 0.2],
+        "subsample": [0.8, 1.0],
+        "colsample_bytree": [0.8, 1.0],
+    }
 
-    model.fit(X_train_capped, y_train)
-    predictions = model.predict(X_test_capped)
-    probabilities = model.predict_proba(X_test_capped)[:, 1]
+    tuner = RandomizedSearchCV(
+        estimator=base_model,
+        param_distributions=param_grid,
+        n_iter=12,
+        scoring="average_precision",
+        cv=3,
+        n_jobs=-1,
+        random_state=random_state,
+        verbose=0,
+    )
+    tuner.fit(X_train_prepared, y_train)
+
+    best_params = tuner.best_params_
+    final_model = XGBClassifier(
+        objective="binary:logistic",
+        eval_metric="logloss",
+        random_state=random_state,
+        **best_params,
+    )
+    final_model.fit(X_train_prepared, y_train)
+    predictions = final_model.predict(X_test_prepared)
+    probabilities = final_model.predict_proba(X_test_prepared)[:, 1]
 
     metrics = {
         "accuracy": round(float(accuracy_score(y_test, predictions)), 4),
@@ -161,25 +168,39 @@ def prepare_and_train(df, target_column, test_size, use_smote, random_state=42):
     cm = confusion_matrix(y_test, predictions)
     report = classification_report(y_test, predictions, target_names=["Negative", "Positive"], output_dict=True)
 
-    feature_names = model.named_steps["preprocess"].get_feature_names_out()
+    feature_names = preprocessor.get_feature_names_out()
     importances = pd.DataFrame(
-        {
-            "feature": feature_names,
-            "importance": model.named_steps["classifier"].feature_importances_,
-        }
+        {"feature": feature_names, "importance": final_model.feature_importances_}
     ).sort_values(by="importance", ascending=False).head(15)
 
+    insights = []
+    if metrics["recall"] < 0.7:
+        insights.append("Recall is below 0.7, so the model is missing a meaningful share of positive cases.")
+    else:
+        insights.append("Recall is strong, so the model is catching most of the positive cases.")
+
+    if metrics["precision"] < 0.5:
+        insights.append("Precision is relatively low, which means false positives remain a concern.")
+    else:
+        insights.append("Precision is healthy, so the flagged cases are more likely to be true positives.")
+
+    if metrics["roc_auc"] > 0.85:
+        insights.append("The ROC AUC is strong, suggesting the ranking quality is good for fraud detection.")
+    else:
+        insights.append("The ROC AUC is moderate, so the model could benefit from more tuning or additional engineered features.")
+
     return {
-        "model": model,
         "metrics": metrics,
         "confusion_matrix": cm,
         "classification_report": report,
         "feature_importance": importances,
+        "best_params": best_params,
+        "train_shape": X_train.shape,
+        "test_shape": X_test.shape,
+        "insights": insights,
         "y_test": y_test,
         "predictions": predictions,
         "probabilities": probabilities,
-        "train_shape": X_train_capped.shape,
-        "test_shape": X_test_capped.shape,
     }
 
 
@@ -188,7 +209,7 @@ if uploaded_file is not None:
     with st.spinner("Loading data..."):
         df = load_csv(uploaded_file)
 
-    st.subheader("Preview")
+    st.subheader("Data Preview")
     st.dataframe(df.head(), use_container_width=True)
 
     target_options = [col for col in df.columns if col.lower() in {"class", "label", "target", "is_fraud", "fraud"}]
@@ -196,23 +217,24 @@ if uploaded_file is not None:
         target_options = df.columns.tolist()
     target_column = st.selectbox("Select the target column", target_options)
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     test_size = col1.slider("Test set size", min_value=0.1, max_value=0.4, value=0.2, step=0.05)
-    use_smote = col2.checkbox("Apply SMOTE to balance the minority class", value=True)
-    random_state = col3.number_input("Random state", min_value=1, max_value=1000, value=42)
+    random_state = col2.number_input("Random state", min_value=1, max_value=1000, value=42)
 
-    if st.button("Train XGBoost model"):
+    if st.button("Run full fraud-detection workflow"):
         try:
-            with st.spinner("Training the model..."):
-                result = prepare_and_train(
-                    df=df,
-                    target_column=target_column,
-                    test_size=test_size,
-                    use_smote=use_smote,
-                    random_state=int(random_state),
-                )
+            with st.spinner("Splitting data, preprocessing the training set, tuning XGBoost, and evaluating on the test set..."):
+                result = run_pipeline(df, target_column, float(test_size), int(random_state))
 
-            st.success("Model training completed.")
+            st.success("Training and evaluation completed.")
+
+            st.subheader("Workflow Summary")
+            st.write("1. Train/test split with stratification")
+            st.write("2. Outlier capping fitted on the training set and applied to both train/test")
+            st.write("3. RobustScaler and imputation applied after fitting on the training set")
+            st.write("4. XGBoost hyperparameter tuning on the training data")
+            st.write("5. Final retraining with the best hyperparameters and evaluation on the held-out test set")
+
             st.subheader("Key Metrics")
             metric_cols = st.columns(6)
             metric_items = [
@@ -225,6 +247,9 @@ if uploaded_file is not None:
             ]
             for col, (label, value) in zip(metric_cols, metric_items):
                 col.metric(label, f"{value:.4f}")
+
+            st.subheader("Best Hyperparameters")
+            st.json(result["best_params"])
 
             st.subheader("Confusion Matrix")
             fig, ax = plt.subplots(figsize=(5, 4))
@@ -241,11 +266,12 @@ if uploaded_file is not None:
             st.subheader("Top Feature Importances")
             st.dataframe(result["feature_importance"], use_container_width=True)
 
-            st.subheader("Preprocessing Summary")
-            st.write(
-                f"Training rows: {result['train_shape'][0]} | Test rows: {result['test_shape'][0]}"
-            )
-            st.write("Applied preprocessing steps: outlier capping, median/most-frequent imputation, robust scaling, one-hot encoding, and optional SMOTE.")
+            st.subheader("Insights")
+            for insight in result["insights"]:
+                st.write(f"- {insight}")
+
+            st.subheader("Data Shape")
+            st.write(f"Training rows: {result['train_shape'][0]} | Test rows: {result['test_shape'][0]}")
 
         except Exception as exc:
             st.error(f"Training failed: {exc}")
