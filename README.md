@@ -67,32 +67,6 @@ Each notebook contains narrative cells explaining the steps and code cells to ru
 - Prefer metrics that capture performance on the minority (fraud) class: precision-recall AUC, recall at a fixed precision, F1-score.
 - Consider resampling strategies (SMOTE, undersampling), class weighting, or threshold tuning if class imbalance is severe.
 
-## Reproducing results
-
-- Set a random seed where applicable to make experiments reproducible (notebooks usually include a `RANDOM_STATE` variable).
-- Record package versions (pip freeze > requirements.txt) or use a lockfile for environment reproducibility.
-- If running long training jobs, save trained models to `models/` and log experiment metadata (hyperparameters, metrics) to `outputs/` or a small CSV.
-
-## Contributing
-
-- Open an issue for bug reports or feature requests.
-- If you want to contribute code, create a feature branch, add tests if appropriate, and open a pull request describing your changes.
-- Keep notebooks tidy: clear large outputs before committing and avoid committing large datasets or model binaries.
-
-## Notes on data privacy
-
-Fraud datasets often contain sensitive information. Ensure you have permission to use and share any datasets. When publishing results, anonymize or aggregate data to avoid exposing PII.
-
-## License
-
-If you have a preferred license, add a LICENSE file. If unsure, consider the MIT License for permissive reuse.
-
-## Contact
-
-Maintainer: HongNgocDuong (GitHub)
-
-If you'd like the README customized further (for example, to include specific notebook names, example commands to run particular notebooks, or a requirements file generated from the environment), tell me which details to include and I will update the README accordingly.
-
 ## Running the Streamlit app
 
 Quick steps to run the Streamlit web app included in this repo.
@@ -119,14 +93,38 @@ pip install streamlit
 streamlit run home.py
 ```
 
-- Common options:
+- If the command still fails, use:
+python -m streamlit run home.py
 
-```bash
-streamlit run home.py --server.port 8501        # run on specific port
-streamlit run home.py --server.headless true    # run without opening a browser
-```
+- Click on Local URL to open the app
 
-- Notes:
-	- If this repo uses a multi-page layout, Streamlit will detect pages in the `pages/` directory automatically.
-	- To share the app publicly, consider deploying to Streamlit Cloud or another hosting provider.
+- Please use the Fraud_segment1.csv in the Presentation deck & Python notebook's folder to upload in the "Upload & Split" page to make sure the model runs correctly.
+
+## Reproducing results
+
+- Set a random seed where applicable to make experiments reproducible (notebooks usually include a `RANDOM_STATE` variable).
+- Record package versions (pip freeze > requirements.txt) or use a lockfile for environment reproducibility.
+- If running long training jobs, save trained models to `models/` and log experiment metadata (hyperparameters, metrics) to `outputs/` or a small CSV.
+
+## Contributing
+
+- Open an issue for bug reports or feature requests.
+- If you want to contribute code, create a feature branch, add tests if appropriate, and open a pull request describing your changes.
+- Keep notebooks tidy: clear large outputs before committing and avoid committing large datasets or model binaries.
+
+## Notes on data privacy
+
+Fraud datasets often contain sensitive information. Ensure you have permission to use and share any datasets. When publishing results, anonymize or aggregate data to avoid exposing PII.
+
+## License
+
+If you have a preferred license, add a LICENSE file. If unsure, consider the MIT License for permissive reuse.
+
+## Contact
+
+Maintainer: HongNgocDuong (GitHub)
+
+If you'd like the README customized further (for example, to include specific notebook names, example commands to run particular notebooks, or a requirements file generated from the environment), tell me which details to include and I will update the README accordingly.
+
+
 
