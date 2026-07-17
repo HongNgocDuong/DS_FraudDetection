@@ -92,3 +92,41 @@ If you have a preferred license, add a LICENSE file. If unsure, consider the MIT
 Maintainer: HongNgocDuong (GitHub)
 
 If you'd like the README customized further (for example, to include specific notebook names, example commands to run particular notebooks, or a requirements file generated from the environment), tell me which details to include and I will update the README accordingly.
+
+## Running the Streamlit app
+
+Quick steps to run the Streamlit web app included in this repo.
+
+- Create and activate a virtual environment (recommended):
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # macOS / Linux
+# .env\Scripts\activate    # Windows (PowerShell)
+```
+
+- Install dependencies (if `requirements.txt` exists) and Streamlit:
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt  # optional if file exists
+pip install streamlit
+```
+
+- Run the app (use the repository root as working directory):
+
+```bash
+streamlit run home.py
+```
+
+- Common options:
+
+```bash
+streamlit run home.py --server.port 8501        # run on specific port
+streamlit run home.py --server.headless true    # run without opening a browser
+```
+
+- Notes:
+	- If this repo uses a multi-page layout, Streamlit will detect pages in the `pages/` directory automatically.
+	- To share the app publicly, consider deploying to Streamlit Cloud or another hosting provider.
+
