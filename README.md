@@ -1,6 +1,6 @@
 # DS_FraudDetection
 
-A collection of Jupyter notebooks and supporting code for exploring, building, and evaluating machine-learning models for fraud detection. The repository contains data exploration, preprocessing, modeling, and evaluation artifacts intended for data scientists and ML practitioners who want a reproducible fraud detection workflow.
+A collection of Jupyter notebooks, presentation deck and supporting code for exploring, building, and evaluating machine-learning models for fraud detection. The repository contains data exploration, preprocessing, modeling, and evaluation artifacts intended for data scientists and ML practitioners who want a reproducible fraud detection workflow.
 
 ## About
 
