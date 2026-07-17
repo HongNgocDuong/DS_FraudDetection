@@ -8,15 +8,8 @@ This project demonstrates end-to-end steps for a fraud detection data science pi
 
 ## Repository structure
 
-Typical layout (not all folders may exist depending on this repository's current state):
-
-- notebooks/ or root .ipynb files — Jupyter notebooks for exploration and experiments
-- data/ — (recommended) place for raw and processed datasets (NOT included in repo unless committed)
-- src/ — reusable Python modules and helper functions
-- models/ — saved model artifacts and serialized pipelines
-- outputs/ or reports/ — figures, model evaluation reports, and logs
-
-Adjust these paths to match the actual files in the repository.
+- Presentation deck & Python notebook: include a Jupyter notebook to show machine learning pipeline code, a powerpoint presentation deck to report on the whole process and key findings, a csv file as a raw dataset to experiment with the streamlit app.
+- Other files are related to python codes used to develop a Streamlit app to display tho full machine learning pipeline for the fraud detection application.
 
 ## Getting started
 
@@ -60,12 +53,6 @@ Work through the notebooks in this order for a reproducible analysis:
 4. Evaluation and interpretation — compute metrics (precision, recall, F1, ROC AUC, PR AUC), confusion matrices, and calibration
 
 Each notebook contains narrative cells explaining the steps and code cells to run experiments. Use JupyterLab to run cells sequentially and save outputs.
-
-## Model training & evaluation
-
-- Use stratified sampling or cross-validation adapted for imbalanced datasets.
-- Prefer metrics that capture performance on the minority (fraud) class: precision-recall AUC, recall at a fixed precision, F1-score.
-- Consider resampling strategies (SMOTE, undersampling), class weighting, or threshold tuning if class imbalance is severe.
 
 ## Running the Streamlit app
 
