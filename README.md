@@ -98,7 +98,9 @@ python -m streamlit run home.py
 
 - Click on Local URL to open the app
 
-- Please use the Fraud_segment1.csv in the Presentation deck & Python notebook's folder to upload in the "Upload & Split" page to make sure the model runs correctly.
+- Notes:
+	- Please use the Fraud_segment1.csv in the Presentation deck & Python notebook's folder to upload in the "Upload & Split" page to make sure the model runs correctly.
+	- After each step is complete, please click on the current step button to move on to the next step. I will improve the UI in the future to make it a better user experience.
 
 ## Reproducing results
 
