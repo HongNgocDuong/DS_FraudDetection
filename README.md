@@ -57,37 +57,40 @@ Each notebook contains narrative cells explaining the steps and code cells to ru
 ## Running the Streamlit app
 
 Quick steps to run the Streamlit web app included in this repo.
+- Via URL: https://mlfrauddetection.streamlit.app/
 
-- Create and activate a virtual environment (recommended):
+- Via Github:
 
-```bash
-python -m venv .venv
-source .venv/bin/activate   # macOS / Linux
-# .env\Scripts\activate    # Windows (PowerShell)
-```
+	- Create and activate a virtual environment (recommended):
 
-- Install dependencies (if `requirements.txt` exists) and Streamlit:
+	```bash
+	python -m venv .venv
+	source .venv/bin/activate   # macOS / Linux
+	# .env\Scripts\activate    # Windows (PowerShell)
+	```
 
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt  # optional if file exists
-pip install streamlit
-```
+	- Install dependencies (if `requirements.txt` exists) and Streamlit:
 
-- Run the app (use the repository root as working directory):
+	```bash
+	pip install --upgrade pip
+	pip install -r requirements.txt  # optional if file exists
+	pip install streamlit
+	```
 
-```bash
-streamlit run home.py
-```
+	- Run the app (use the repository root as working directory):
 
-- If the command still fails, use:
-python -m streamlit run home.py
+	```bash
+	streamlit run home.py
+	```
 
-- Click on Local URL to open the app
+	- If the command still fails, use:
+	python -m streamlit run home.py
 
-- Notes:
-	- Please use the Fraud_segment1.csv in the Presentation deck & Python notebook's folder to upload in the "Upload & Split" page to make sure the model runs correctly.
-	- After each step is complete, please click on the current step button to move on to the next step. I will improve the UI in the future to make it a better user experience.
+	- Click on Local URL to open the app
+
+	- Notes:
+		- Please use the Fraud_segment1.csv in the Presentation deck & Python notebook's folder to upload in the "Upload & Split" page to make sure the model runs correctly.
+		- After each step is complete, please click on the current step button to move on to the next step. I will improve the UI in the future to make it a better user experience.
 
 ## Reproducing results
 
