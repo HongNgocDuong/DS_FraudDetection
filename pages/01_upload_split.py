@@ -1,73 +1,25 @@
 import streamlit as st
-import pandas as pd
-from pathlib import Path
-from sklearn.model_selection import train_test_split
-from workflow_nav import hide_default_nav, render_workflow_nav, reset_workflow_state
+from workflow_nav import hide_default_nav, render_workflow_nav
+from static_demo import ensure_static_demo_state
 
-st.set_page_config(page_title="Upload & Split", layout="wide")
+st.set_page_config(page_title="Dataset Overview", layout="wide")
 hide_default_nav()
 render_workflow_nav(1)
 
-if "current_step" not in st.session_state:
-    st.session_state["current_step"] = 1
+ensure_static_demo_state()
 
-current_page = Path(__file__).name
-current_step = st.session_state.get("current_step", 1)
-page_step = 1
-allowed = current_step == 1 if page_step == 1 else page_step <= current_step
-if not allowed:
-    target_page = "home.py"
-    if current_step > 1:
-        target_page = ["pages/01_upload_split.py", "pages/02_preprocess_cv.py", "pages/03_model_tuning.py", "pages/04_evaluate.py"][current_step - 1]
-    st.info("This workflow only moves forward. You are being returned to the current step.")
-    st.switch_page(target_page)
-    st.stop()
+st.title("1. Dataset Overview")
+st.write("The fraud sample dataset is already loaded for this demo. No upload or split is required.")
 
-st.title("1. Upload Dataset and Create Train/Test Split")
+st.success(f"Loaded sample dataset: {st.session_state['dataset_name']}")
 
-if st.session_state.get("step_complete_4", False) or st.session_state.get("latest_completed_step") == 4:
-    st.warning("The current pipeline is complete. You can start a new upload below.")
-    if st.button("Start a new pipeline", use_container_width=True):
-        reset_workflow_state()
-        st.rerun()
+summary = st.session_state["split_summary"]
+col1, col2, col3 = st.columns(3)
+col1.metric("Train rows", summary["train_rows"])
+col2.metric("Test rows", summary["test_rows"])
+col3.metric("Target column", summary["target_column"])
 
-uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.session_state["df"] = df
-    st.success("Dataset loaded.")
-    st.dataframe(df.head(), use_container_width=True)
+st.subheader("Sample rows")
+st.dataframe(st.session_state["df"].head(), use_container_width=True)
 
-    target_options = [col for col in df.columns if col.lower() in {"class", "label", "target", "is_fraud", "fraud"}]
-    if not target_options:
-        target_options = df.columns.tolist()
-    target_column = st.selectbox("Select the target column", target_options)
-    st.session_state["target_column"] = target_column
-
-    col1, col2 = st.columns(2)
-    test_size = col1.slider("Test set size", min_value=0.1, max_value=0.4, value=0.2, step=0.05)
-    random_state = col2.number_input("Random state", min_value=1, max_value=1000, value=42)
-
-    if st.button("Create train/test split"):
-        X = df.drop(columns=[target_column]).copy()
-        y = df[target_column].astype(str)
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, stratify=y, random_state=int(random_state)
-        )
-        st.session_state["X_train"] = X_train.reset_index(drop=True)
-        st.session_state["X_test"] = X_test.reset_index(drop=True)
-        st.session_state["y_train"] = y_train.reset_index(drop=True)
-        st.session_state["y_test"] = y_test.reset_index(drop=True)
-        st.session_state["test_size"] = test_size
-        st.session_state["random_state"] = int(random_state)
-        st.session_state["step_complete_1"] = True
-        st.session_state["step_complete_2"] = False
-        st.session_state["step_complete_3"] = False
-        st.session_state["step_complete_4"] = False
-        st.session_state["latest_completed_step"] = 1
-        st.session_state["current_step"] = 2
-        st.success("Train/test split created.")
-        st.write(f"Training rows: {len(X_train)}")
-        st.write(f"Test rows: {len(X_test)}")
-else:
-    st.info("Upload a CSV file to begin.")
+st.caption("This page is intentionally static and displays the bundled dataset values directly.")

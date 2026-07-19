@@ -1,42 +1,46 @@
 import streamlit as st
-import pandas as pd
 from workflow_nav import hide_default_nav, render_workflow_nav
+from static_demo import ensure_static_demo_state
 
-st.set_page_config(page_title="Fraud Detection Pipeline", layout="wide")
+st.set_page_config(page_title="Fraud Detection Demo", layout="wide")
 hide_default_nav()
 render_workflow_nav(1)
-st.title("Fraud Detection ML Pipeline")
-st.write("This multi-page app walks through the full fraud detection workflow from data upload to final evaluation.")
+
+st.title("Fraud Detection Demo")
+st.write("This version of the app is a static showcase that uses the bundled fraud sample dataset and displays results on every page.")
+
+ensure_static_demo_state()
+
+if "static_demo_error" in st.session_state:
+    st.error(st.session_state["static_demo_error"])
+    st.stop()
+
+st.success(f"Loaded sample dataset: {st.session_state['dataset_name']}")
+st.caption("No uploads or recalculation are required. The results below are preloaded for demonstration purposes.")
 
 st.markdown("""
-### Pipeline Overview
-1. Upload your dataset and create a train/test split.
-2. Prepare the training data with stratified cross-validation, outlier capping, RobustScaler, and SMOTE.
-3. Train and tune a Random Forest model across folds.
-4. Apply the same preprocessing to the test set and evaluate the final model.
+### Demo overview
+1. Review the uploaded sample dataset and the selected target column.
+2. Inspect the preprocessing plan and cross-validation setup.
+3. View the tuned Random Forest hyperparameters and training summary.
+4. Review the final evaluation metrics, confusion matrix, and report.
 """)
 
-st.info("Complete each step in order. Later pages stay locked until the previous step is finished.")
-
 steps = [
-    ("1. Upload and split", st.session_state.get("step_complete_1", False)),
-    ("2. Preprocess and cross-validation", st.session_state.get("step_complete_2", False)),
-    ("3. Model tuning", st.session_state.get("step_complete_3", False)),
-    ("4. Evaluation", st.session_state.get("step_complete_4", False)),
+    ("1. Dataset overview", st.session_state.get("step_complete_1", False)),
+    ("2. Preprocessing summary", st.session_state.get("step_complete_2", False)),
+    ("3. Model tuning results", st.session_state.get("step_complete_3", False)),
+    ("4. Evaluation results", st.session_state.get("step_complete_4", False)),
 ]
 
 for label, done in steps:
-    if done:
-        status = "✅ Completed"
-    else:
-        status = "⏳ Pending"
+    status = "✅ Completed" if done else "✅ Ready"
     st.write(f"{status} — {label}")
 
-if st.session_state.get("step_complete_2", False):
-    st.success("Preprocessing is complete. You can now move to the Tune model step.")
+st.subheader("Sample dataset preview")
+st.dataframe(st.session_state["df"].head(), use_container_width=True)
 
-if "df" in st.session_state:
-    st.success("Dataset loaded and ready for the next step.")
-    st.dataframe(st.session_state["df"].head(), use_container_width=True)
-else:
-    st.info("Upload a dataset from the first page to begin.")
+col1, col2, col3 = st.columns(3)
+col1.metric("Rows", st.session_state["dataset_shape"][0])
+col2.metric("Columns", st.session_state["dataset_shape"][1])
+col3.metric("Target column", st.session_state["target_column"])

@@ -1,119 +1,72 @@
 # DS_FraudDetection
 
-A collection of Jupyter notebooks, presentation deck and supporting code for exploring, building, and evaluating machine-learning models for fraud detection. The repository contains data exploration, preprocessing, modeling, and evaluation artifacts intended for data scientists and ML practitioners who want a reproducible fraud detection workflow.
+This repository contains a compact fraud-detection demo project with a Streamlit app, supporting Python scripts, and a presentation notebook. The app now runs in a static demo mode that uses a bundled sample dataset, so it is easy to review without uploading files or retraining models.
 
-## About
+## What is in this repository
 
-This project demonstrates end-to-end steps for a fraud detection data science pipeline: data inspection and cleaning, feature engineering, model training and selection, and evaluation with relevant metrics. The primary artifacts are Jupyter Notebooks (interactive analysis and experiments) and Python scripts (re-usable functions and training pipelines).
+- Streamlit app entry point: [home.py](home.py)
+- Static demo data loader: [static_demo.py](static_demo.py)
+- Workflow navigation helpers: [workflow_nav.py](workflow_nav.py)
+- Demo pages: [pages/01_upload_split.py](pages/01_upload_split.py), [pages/02_preprocess_cv.py](pages/02_preprocess_cv.py), [pages/03_model_tuning.py](pages/03_model_tuning.py), and [pages/04_evaluate.py](pages/04_evaluate.py)
+- Notebook and presentation materials: [Presentation deck & Python notebook](Presentation%20deck%20&%20Python%20notebook)
 
-## Repository structure
+## Project goals
 
-- Presentation deck & Python notebook: include a Jupyter notebook to show machine learning pipeline code, a powerpoint presentation deck to report on the whole process and key findings, a csv file as a raw dataset to experiment with the streamlit app.
-- Other files are related to python codes used to develop a Streamlit app to display tho full machine learning pipeline for the fraud detection application.
+The project demonstrates a fraud-detection workflow covering:
+
+1. Dataset inspection
+2. Preprocessing and cross-validation setup
+3. Model tuning overview
+4. Final evaluation metrics and summary outputs
+
+The current app is designed as a polished static showcase rather than a fully interactive training pipeline.
 
 ## Getting started
 
-Prerequisites
+### Prerequisites
 
-- Python 3.8+ recommended
-- JupyterLab or Jupyter Notebook
-- Virtual environment (venv, conda) recommended
+- Python 3.9+ recommended
+- A virtual environment is recommended
 
-Install dependencies
-
-If a requirements.txt exists in the repo:
+### Setup
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate    # macOS / Linux
-.venv\Scripts\activate      # Windows (PowerShell)
-
+.venv\Scripts\activate      # Windows PowerShell
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-If there's no requirements file, install common data science packages used for fraud detection:
+### Run the app
+
+Via URL: https://mlfrauddetection.streamlit.app/
+
+From the repository root:
 
 ```bash
-pip install numpy pandas scikit-learn matplotlib seaborn jupyterlab xgboost lightgbm
+.venv\Scripts\python.exe -m streamlit run home.py
 ```
 
-Data
+The app will open at http://localhost:8501/ and display the preloaded demo results.
 
-- Place your dataset files in the `data/` directory (create it if missing). Use descriptive names such as `transactions.csv`, `labels.csv`, or `fraud_data.csv`.
-- For privacy and compliance, do not commit sensitive or personally identifiable information (PII) to this repository.
+## Demo behavior
 
-## Notebooks and recommended workflow
+The current Streamlit experience is intentionally static:
 
-Work through the notebooks in this order for a reproducible analysis:
+- The sample dataset is already loaded
+- Each page shows precomputed results
+- No upload, training, or evaluation step is required to view the demo
 
-1. Data exploration and visualization — inspect distributions, missing values, and class imbalance
-2. Preprocessing and feature engineering — cleaning, encoding, scaling, and deriving new features
-3. Modeling — train a selection of models (logistic regression, tree-based models, boosting)
-4. Evaluation and interpretation — compute metrics (precision, recall, F1, ROC AUC, PR AUC), confusion matrices, and calibration
+If the bundled CSV file is missing or empty, the app uses a built-in fallback dataset so the demo continues to run.
 
-Each notebook contains narrative cells explaining the steps and code cells to run experiments. Use JupyterLab to run cells sequentially and save outputs.
+## Notebook and presentation materials
 
-## Running the Streamlit app
+The notebook and presentation deck in [Presentation deck & Python notebook](Presentation%20deck%20&%20Python%20notebook) can be used for additional context, screenshots, and narrative explanation of the workflow.
 
-Quick steps to run the Streamlit web app included in this repo.
+## Notes
 
-- Create and activate a virtual environment (recommended):
-
-```bash
-python -m venv .venv
-source .venv/bin/activate   # macOS / Linux
-# .env\Scripts\activate    # Windows (PowerShell)
-```
-
-- Install dependencies (if `requirements.txt` exists) and Streamlit:
-
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt  # optional if file exists
-pip install streamlit
-```
-
-- Run the app (use the repository root as working directory):
-
-```bash
-streamlit run home.py
-```
-
-- If the command still fails, use:
-python -m streamlit run home.py
-
-- Click on Local URL to open the app
-
-- Notes:
-	- Please use the Fraud_segment1.csv in the Presentation deck & Python notebook's folder to upload in the "Upload & Split" page to make sure the model runs correctly.
-	- After each step is complete, please click on the current step button to move on to the next step. I will improve the UI in the future to make it a better user experience.
-
-## Reproducing results
-
-- Set a random seed where applicable to make experiments reproducible (notebooks usually include a `RANDOM_STATE` variable).
-- Record package versions (pip freeze > requirements.txt) or use a lockfile for environment reproducibility.
-- If running long training jobs, save trained models to `models/` and log experiment metadata (hyperparameters, metrics) to `outputs/` or a small CSV.
-
-## Contributing
-
-- Open an issue for bug reports or feature requests.
-- If you want to contribute code, create a feature branch, add tests if appropriate, and open a pull request describing your changes.
-- Keep notebooks tidy: clear large outputs before committing and avoid committing large datasets or model binaries.
-
-## Notes on data privacy
-
-Fraud datasets often contain sensitive information. Ensure you have permission to use and share any datasets. When publishing results, anonymize or aggregate data to avoid exposing PII.
-
-## License
-
-If you have a preferred license, add a LICENSE file. If unsure, consider the MIT License for permissive reuse.
-
-## Contact
-
-Maintainer: HongNgocDuong (GitHub)
-
-If you'd like the README customized further (for example, to include specific notebook names, example commands to run particular notebooks, or a requirements file generated from the environment), tell me which details to include and I will update the README accordingly.
+- Keep the repository tidy by avoiding large raw datasets or model binaries in version control.
+- For privacy and compliance, do not commit sensitive or personally identifiable information.
 
 
 
