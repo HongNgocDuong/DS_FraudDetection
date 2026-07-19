@@ -1,15 +1,15 @@
 # DS_FraudDetection
 
-A collection of Jupyter notebooks, presentation deck and supporting code for exploring, building, and evaluating machine-learning models for fraud detection. The repository contains data exploration, preprocessing, modeling, and evaluation artifacts intended for data scientists and ML practitioners who want a reproducible fraud detection workflow.
+Designed and evaluated machine learning models for fraud detection through data preprocessing, feature engineering, model selection, and performance evaluation. Created a Streamlit application to showcase a reproducible end-to-end machine learning pipeline.
 
 ## About
 
-This project demonstrates end-to-end steps for a fraud detection data science pipeline: data inspection and cleaning, feature engineering, model training and selection, and evaluation with relevant metrics. The primary artifacts are Jupyter Notebooks (interactive analysis and experiments) and Python scripts (re-usable functions and training pipelines).
+This project demonstrates end-to-end steps for a fraud detection data science pipeline: data inspection and cleaning, feature engineering, model training and selection, and evaluation with relevant metrics. The primary artifacts are Jupyter Notebooks (interactive analysis and experiments) and Python scripts (re-usable functions and training pipelines) for an app that could be deployed using Streamlit.
 
 ## Repository structure
 
 - Presentation deck & Python notebook: include a Jupyter notebook to show machine learning pipeline code, a powerpoint presentation deck to report on the whole process and key findings, a csv file as a raw dataset to experiment with the streamlit app.
-- Other files are related to python codes used to develop a Streamlit app to display tho full machine learning pipeline for the fraud detection application.
+- Other files are related to python codes used to develop a Streamlit app to display the full machine learning pipeline for the fraud detection application.
 
 ## Getting started
 
